@@ -20,6 +20,7 @@ class Test_W_Truncate(unittest.TestCase):
 
     def setUp(self):
 
+        westpa.rc.clear_state()
         self.starting_path = os.getcwd()
 
         self.odld_path = os.path.dirname(__file__) + '/ref'
@@ -51,11 +52,7 @@ class Test_W_Truncate(unittest.TestCase):
 
     def tearDown(self):
 
-        westpa.rc._sim_manager = None
-        westpa.rc._system = None
-        westpa.rc._data_manager = None
-        westpa.rc._we_driver = None
-        westpa.rc._propagator = None
+        westpa.rc.clear_state()
         os.environ['WEST_SIM_ROOT'] = ''
 
         os.remove(self.odld_path + '/west.h5')

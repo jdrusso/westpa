@@ -21,7 +21,7 @@ class Test_W_States(unittest.TestCase):
     def setUp(self):
 
         self.starting_path = os.getcwd()
-
+        westpa.rc.clear_state()
         self.odld_path = os.path.dirname(__file__) + '/ref'
 
     def test_run_w_states(self):
@@ -49,11 +49,7 @@ class Test_W_States(unittest.TestCase):
 
     def tearDown(self):
 
-        westpa.rc._sim_manager = None
-        westpa.rc._system = None
-        westpa.rc._data_manager = None
-        westpa.rc._we_driver = None
-        westpa.rc._propagator = None
+        westpa.rc.clear_state()
         os.environ['WEST_SIM_ROOT'] = ''
 
         os.remove(self.odld_path + '/west.h5')

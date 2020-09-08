@@ -21,6 +21,8 @@ class Test_W_Init(unittest.TestCase):
 
     def setUp(self):
 
+        westpa.rc.clear_state()
+
         # TODO: This *shouldn't* need to be tracked, after calling chdir everything should be dumped into odld_path
         #    However, it seems that this is not the case, and the generated west.h5 is dropped wherever pytest is
         #    launched from, hence the need for tracking this.
@@ -60,11 +62,7 @@ class Test_W_Init(unittest.TestCase):
 
     def tearDown(self):
 
-        westpa.rc._sim_manager = None
-        westpa.rc._system = None
-        westpa.rc._data_manager = None
-        westpa.rc._we_driver = None
-        westpa.rc._propagator = None
+        westpa.rc.clear_state()
         os.environ['WEST_SIM_ROOT'] = ''
         os.remove(self.odld_path + '/west.h5')
         os.chdir(self.starting_path)
