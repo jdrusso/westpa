@@ -769,7 +769,7 @@ class RestartDriver:
 
             log.info(f"Run {restart_state['runs_completed']}/{self.n_runs} completed.")
 
-            # TODO: Initialize a new run, from the same configuration as this run was
+            # Initialize a new run, from the same configuration as this run was
             #   On the 1st run, I can write bstates/tstates/sstates into restart files, and use those for spawning
             #   subsequent runs in the marathon. That way, I don't make unnecessary copies of all those.
             # Basis and target states are unchanged. Can I get the original parameters passed to w_init?
@@ -860,10 +860,8 @@ class RestartDriver:
         self.data_manager.finalize_run()
         shutil.copyfile(self.data_manager.we_h5filename, f"{run_directory}/west.h5")
 
-        # Use all files in all restarts
         # Restarts index at 0, because there's  a 0th restart before you've... restarted anything.
         # Runs index at 1, because Run 1 is the first run.
-        # TODO: Let the user pick last half or something in the plugin config.
         marathon_west_files = []
         # When doing the first restart, restarts_completed is 0 (because the first restart isn't complete yet) and
         #   the data generated during this restart is in /restart0.
@@ -984,6 +982,10 @@ class RestartDriver:
 
         # Construct start-state file with all structures and their weights
         # TODO: Don't explicitly write EVERY structure to disk, or this will be a nightmare for large runs.
+        # TODO: There are probably multiple better ways of doing this -- one big flaw with this is I absolutely need
+        #   msm_we to have full access to all coordinates, because otherwise it can't write out these structures.
+        #   If I instead "write" the structures by looking at the corresponding trajectory file, then I don't need
+        #   all those atomic coordinates in west.h5.... but then I can't tar up all the trajectory files. Neither great.
         # However, for now, it's fine...
         log.debug("Writing structures")
         # TODO: Include start states from previous runs
