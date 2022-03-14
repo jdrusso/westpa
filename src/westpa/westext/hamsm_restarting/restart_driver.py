@@ -136,7 +136,7 @@ def prepare_coordinates(plugin_config, h5file, we_h5filename):
     pcoord_ndim = plugin_config.get('pcoord_ndim', 1)
 
     model = msm_we.modelWE()
-    log.info('Preparing coordinates...')
+    log.info('Augmenting west.h5 with coordinates...')
 
     # Only need the model to get the number of iterations and atoms
     # TODO: Replace this with something more lightweight, get directly from WE
@@ -445,6 +445,10 @@ class RestartDriver:
 
         sim_manager.register_callback(sim_manager.finalize_run, self.prepare_new_we, self.priority)
 
+        # prepare_coordinates(self.plugin_config, self.data_manager.we_h5file, self.data_manager.we_h5filename)
+        prep_coord = lambda: prepare_coordinates(self.plugin_config, self.data_manager.we_h5file, self.data_manager.we_h5filename)
+        sim_manager.register_callback(sim_manager.post_propagation, prep_coord, 1)
+
         # Initialize data
         self.ss_alg = None
         self.ss_dist = None
@@ -714,8 +718,8 @@ class RestartDriver:
         if not os.path.exists(run_directory):
             os.makedirs(run_directory)
 
-        # Write coordinates to h5
-        prepare_coordinates(self.plugin_config, self.data_manager.we_h5file, self.data_manager.we_h5filename)
+        # # Write coordinates to h5
+        # prepare_coordinates(self.plugin_config, self.data_manager.we_h5file, self.data_manager.we_h5filename)
 
         for data_folder in ['traj_segs', 'seg_logs']:
             old_path = data_folder
