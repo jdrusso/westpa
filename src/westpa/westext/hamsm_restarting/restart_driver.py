@@ -136,7 +136,8 @@ def prepare_coordinates(plugin_config, h5file, we_h5filename):
     pcoord_ndim = plugin_config.get('pcoord_ndim', 1)
 
     model = msm_we.modelWE()
-    log.info('Augmenting west.h5 with coordinates...')
+    # log.info('Augmenting west.h5 with coordinates...')
+    westpa.rc.pstatus('Augmenting west.h5 with coordinates...')
 
     # Only need the model to get the number of iterations and atoms
     # TODO: Replace this with something more lightweight, get directly from WE
@@ -158,7 +159,8 @@ def prepare_coordinates(plugin_config, h5file, we_h5filename):
     log.debug(f"Found {model.maxIter} iterations")
 
     n_iter = None
-    for n_iter in tqdm.tqdm(range(1, model.maxIter + 1)):
+    # for n_iter in tqdm.tqdm(range(1, model.maxIter + 1)):
+    for n_iter in range(1, model.maxIter + 1):
 
         nS = model.numSegments[n_iter - 1].astype(int)
         coords = np.zeros((nS, 2, model.nAtoms, 3))
