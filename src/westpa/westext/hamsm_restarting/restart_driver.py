@@ -135,8 +135,6 @@ def prepare_coordinates(plugin_config, h5file, we_h5filename, _iteration=None):
 
     reference_structure = md.load(refPDBfile)
 
-    westpa.rc.pstatus(f"Processing for iter {_iteration}")
-
     if _iteration is not None:
         # Get the number of iterations, according to the _iteration argument
         _iters = range(1, _iteration + 1)
@@ -145,9 +143,10 @@ def prepare_coordinates(plugin_config, h5file, we_h5filename, _iteration=None):
         # Here we're not end-inclusive (no +1), because in general if you call this after a WE run, the
         #   iteration is max_iter+1.
         #   I.e., a WESTPA run with 20 iterations will finish on iteration 21, which has no dynamics.
+        # Might be able to use this by default, instead of needing _iteration, but feels safer to get it straight from
+        #   the sim manager when possible.
         _iters = range(1, h5file.attrs['west_current_iteration'])
 
-    # for n_iter in range(1, model.maxIter + 1):
     for n_iter in _iters:
 
         # TODO: Take the template string from west.cfg, not guaranteed to be 8 digits
