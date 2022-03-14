@@ -103,7 +103,7 @@ def fix_deprecated_initialization(initialization_state):
 
 # TODO: Break this out into a separate module, let it be specified (if it's necessary) as a plugin option
 #   This may not always be required -- i.e. you may be able to directly output to the h5 file in your propagator
-def prepare_coordinates(plugin_config, h5file, we_h5filename):
+def prepare_coordinates(plugin_config, h5file, we_h5filename, _iteration=None):
     """
     Copy relevant coordinates from trajectory files into <iteration>/auxdata/coord of the h5 file.
 
@@ -126,44 +126,34 @@ def prepare_coordinates(plugin_config, h5file, we_h5filename):
     """
 
     refPDBfile = plugin_config.get('ref_pdb_file')
-    modelName = plugin_config.get('model_name')
 
     # TODO: Don't need this explicit option, use WEST_SIM_ROOT or something
     WEfolder = plugin_config.get('we_folder')
 
     parentTraj = plugin_config.get('parent_traj_filename')
     childTraj = plugin_config.get('child_traj_filename')
-    pcoord_ndim = plugin_config.get('pcoord_ndim', 1)
 
-    model = msm_we.modelWE()
-    # log.info('Augmenting west.h5 with coordinates...')
-    westpa.rc.pstatus('Augmenting west.h5 with coordinates...')
+    reference_structure = md.load(refPDBfile)
 
-    # Only need the model to get the number of iterations and atoms
-    # TODO: Replace this with something more lightweight, get directly from WE
-    log.debug(f'Doing collectCoordinates on  WE file {we_h5filename}')
-    model.initialize(
-        [we_h5filename],
-        refPDBfile,
-        modelName,
-        # Pass some dummy arguments -- these aren't important, this model is just created for convenience
-        # in the coordinate collection. Dummy arguments prevent warnings from being raised.
-        basis_pcoord_bounds=None,
-        target_pcoord_bounds=None,
-        tau=1,
-        pcoord_ndim=pcoord_ndim,
-        _suppress_boundary_warning=True,
-    )
-    model.get_iterations()
+    westpa.rc.pstatus(f"Processing for iter {_iteration}")
 
-    log.debug(f"Found {model.maxIter} iterations")
+    if _iteration is not None:
+        # Get the number of iterations, according to the _iteration argument
+        _iters = range(1, _iteration + 1)
+    else:
+        # Get the number of iterations from the H5 file
+        # Here we're not end-inclusive (no +1), because in general if you call this after a WE run, the
+        #   iteration is max_iter+1.
+        #   I.e., a WESTPA run with 20 iterations will finish on iteration 21, which has no dynamics.
+        _iters = range(1, h5file.attrs['west_current_iteration'])
 
-    n_iter = None
-    # for n_iter in tqdm.tqdm(range(1, model.maxIter + 1)):
-    for n_iter in range(1, model.maxIter + 1):
+    # for n_iter in range(1, model.maxIter + 1):
+    for n_iter in _iters:
 
-        nS = model.numSegments[n_iter - 1].astype(int)
-        coords = np.zeros((nS, 2, model.nAtoms, 3))
+        # TODO: Take the template string from west.cfg, not guaranteed to be 8 digits
+        nS = len(h5file[f'iterations/iter_{n_iter:08d}/seg_index'])
+        coords = np.zeros((nS, 2, reference_structure.n_atoms, 3))
+
         dsetName = "/iterations/iter_%08d/auxdata/coord" % int(n_iter)
 
         coords_exist = False
@@ -174,16 +164,18 @@ def prepare_coordinates(plugin_config, h5file, we_h5filename):
             coords_exist = True
             continue
 
+        westpa.rc.pstatus(f'Augmenting west.h5 with coordinates for iter {n_iter}')
+
         for iS in range(nS):
             trajpath = WEfolder + "/traj_segs/%06d/%06d" % (n_iter, iS)
 
             try:
-                coord0 = np.squeeze(md.load(f'{trajpath}/{parentTraj}', top=model.reference_structure.topology)._xyz)
+                coord0 = np.squeeze(md.load(f'{trajpath}/{parentTraj}', top=reference_structure.topology)._xyz)
             except OSError:
                 log.warning("Parent traj file doesn't exist, loading reference structure coords")
-                coord0 = np.squeeze(model.reference_structure._xyz)
+                coord0 = np.squeeze(reference_structure._xyz)
 
-            coord1 = np.squeeze(md.load(f'{trajpath}/{childTraj}', top=model.reference_structure.topology)._xyz)
+            coord1 = np.squeeze(md.load(f'{trajpath}/{childTraj}', top=reference_structure.topology)._xyz)
 
             coords[iS, 0, :, :] = coord0
             coords[iS, 1, :, :] = coord1
@@ -448,8 +440,11 @@ class RestartDriver:
         sim_manager.register_callback(sim_manager.finalize_run, self.prepare_new_we, self.priority)
 
         # prepare_coordinates(self.plugin_config, self.data_manager.we_h5file, self.data_manager.we_h5filename)
-        prep_coord = lambda: prepare_coordinates(self.plugin_config, self.data_manager.we_h5file, self.data_manager.we_h5filename)
-        sim_manager.register_callback(sim_manager.post_propagation, prep_coord, 1)
+        prep_coord = lambda: prepare_coordinates(
+            self.plugin_config, self.data_manager.we_h5file, self.data_manager.we_h5filename, _iteration=self.cur_iter
+        )
+
+        sim_manager.register_callback(sim_manager.post_we, prep_coord, 1)
 
         # Initialize data
         self.ss_alg = None
@@ -483,9 +478,9 @@ class RestartDriver:
 
         Returns
         -------
-        int: The current iteration. Subtract one, because in finalize_run the iter has been incremented
+        int: The current iteration.
         """
-        return self.sim_manager.n_iter - 1
+        return self.sim_manager.n_iter
 
     @property
     def is_last_iteration(self):
