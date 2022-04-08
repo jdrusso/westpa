@@ -1007,7 +1007,7 @@ class RestartDriver:
                 total_bin_weights.append(0)
 
                 # Don't put structures in the basis or target
-                if msm_bin_idx in [model.n_clusters, model.n_clusters + 1]:
+                if msm_bin_idx in [model.n_clusters + 1]:
                     continue
 
                 # The per-segment bin probability.
