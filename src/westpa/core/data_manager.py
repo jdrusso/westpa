@@ -848,6 +848,22 @@ class WESTDataManager:
 
                 for ci in range(len(istate_chunk)):
                     row = istate_chunk[ci]
+
+                    if n_iter > 1 and row['istate_type'] == InitialState.ISTATE_TYPE_START:
+
+                        # If we're using start-states, then this iterates over them even though they're explicitly
+                        #   never used after the WE run has been initialized (i.e. after iter 1).
+                        # This incurs a substantial performance hit, because we have to read them all from the H5
+                        #   file.
+                        # If we assume that ALL the initial/basis states are recorded before the start states in the
+                        # /ibstates dataset, then we can just exit out of here as soon as we reach the
+                        # first start-state.
+                        # TODO: A cleaner implementation would be to filter out start-states when reading the ibstate
+                        #   group, or store start-states in a separate group, rather than assuming structure of the
+                        #   ibstates group. However, this is simpler, and seems to be robust enough.
+                        istart = n_index_entries
+                        break
+
                     pcoord = pcoord_chunk[ci]
                     state_id = istart + ci
                     if row['iter_used'] == ISTATE_UNUSED and row['istate_status'] == ISTATE_STATUS_PREPARED:
