@@ -1,4 +1,7 @@
 import unittest
+import pytest
+
+pytest.importorskip("mpi4py", reason="mpi4py is required for MPI tests")
 
 from westpa.work_managers.mpi import MPIWorkManager
 
