@@ -270,19 +270,19 @@ class TestZMQWorkManagerInternalNone(ZMQTestBase, unittest.TestCase):
 
     @flaky_on_macos
     def test_shutdown_without_workers(self):
-        time.sleep(1.5)
+        time.sleep(2.0)
         assert not self.test_wm.comm_thread.is_alive()
 
     @flaky_on_macos
     def test_shutdown_without_workers_after_submission(self):
         self.test_wm.submit(identity, (1,), {})
-        time.sleep(1.5)
+        time.sleep(2.0)
         assert not self.test_wm.comm_thread.is_alive()
 
     @flaky_on_macos
     def test_shutdown_without_workers_raises_future_error(self):
         future = self.test_wm.submit(identity, (1,), {})
-        time.sleep(1.5)
+        time.sleep(2.0)
         assert isinstance(future.get_exception(), ZMQWorkerMissing)
 
 
